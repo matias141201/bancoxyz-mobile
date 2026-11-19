@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler } from 'react-native';
 
 import { localCalendarDate } from '@/shared/domain/calendar-date';
@@ -13,6 +13,7 @@ type TransferStep =
 
 type FlowDependencies = Readonly<{
   currency: string;
+  availableBalance: number;
   clock: () => Date;
   submit: SubmitTransfer;
   onUnauthorized: () => void;
@@ -22,6 +23,7 @@ const initialDraft: TransferDraft = { recipientDocument: '', amount: '', timing:
 const fieldNotice = {
   recipientDocument: 'Ingresá un documento válido.',
   amount: 'Ingresá un monto mayor que cero con los decimales de la moneda.',
+  balance: 'El monto supera el saldo disponible.',
   date: 'Elegí una fecha posterior a hoy.',
 } as const;
 const submitNotice: Record<Exclude<TransferError, 'uncertain'>, string> = {
@@ -47,24 +49,28 @@ async function send(transfer: TransferOrder, submit: SubmitTransfer): Promise<Tr
   }
 }
 
-export function useTransferFlow({ currency, clock, submit, onUnauthorized }: FlowDependencies) {
+export function useTransferFlow({ currency, availableBalance, clock, submit, onUnauthorized }: FlowDependencies) {
   const [draft, setDraft] = useState(initialDraft);
   const [step, setStep] = useState<TransferStep>({ stage: 'draft', notice: '' });
   const sending = useRef(false);
+  const edit = useCallback(() => setStep({ stage: 'draft', notice: '' }), []);
 
   useEffect(() => {
-    if (step.stage !== 'sending' || process.env.EXPO_OS !== 'android') return;
-    const listener = BackHandler.addEventListener('hardwareBackPress', () => true);
+    if (process.env.EXPO_OS !== 'android' || (step.stage !== 'review' && step.stage !== 'sending')) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step.stage === 'review') edit();
+      return true;
+    });
     return () => listener.remove();
-  }, [step.stage]);
+  }, [edit, step.stage]);
 
   function update(value: TransferDraft) {
     setDraft(value);
-    setStep({ stage: 'draft', notice: '' });
+    edit();
   }
 
   function review() {
-    const result = validateTransferDraft(draft, currency, localCalendarDate(clock()));
+    const result = validateTransferDraft(draft, currency, localCalendarDate(clock()), availableBalance);
     setStep(result.ok
       ? { stage: 'review', order: result.order, notice: '' }
       : { stage: 'draft', notice: fieldNotice[result.field] });
@@ -73,7 +79,7 @@ export function useTransferFlow({ currency, clock, submit, onUnauthorized }: Flo
   async function confirm() {
     if (sending.current || step.stage !== 'review') return;
 
-    const result = validateTransferDraft(draft, currency, localCalendarDate(clock()));
+    const result = validateTransferDraft(draft, currency, localCalendarDate(clock()), availableBalance);
     if (!result.ok) {
       setStep({ stage: 'draft', notice: fieldNotice[result.field] });
       return;
@@ -96,5 +102,5 @@ export function useTransferFlow({ currency, clock, submit, onUnauthorized }: Flo
     }
   }
 
-  return { draft, step, update, review, confirm };
+  return { draft, step, update, edit, review, confirm };
 }

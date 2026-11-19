@@ -66,7 +66,10 @@ it('filtra independientemente por nombre, monto y fecha o aplica todos a la vez'
 });
 
 it('detecta filtros fuera de formato', () => {
-  expect(validateHistoryFilters({ ...baseFilters, amount: '10,' })).toBe('amount');
-  expect(validateHistoryFilters({ ...baseFilters, date: '2026-02-30' })).toBe('date');
-  expect(validateHistoryFilters({ ...baseFilters, date: ' 2026-01-08 ', amount: '125,5' })).toBeNull();
+  const today = '2026-01-10';
+  expect(validateHistoryFilters({ ...baseFilters, amount: '10,' }, today)).toBe('amount');
+  expect(validateHistoryFilters({ ...baseFilters, date: '2026-02-30' }, today)).toBe('date');
+  expect(validateHistoryFilters({ ...baseFilters, date: '2026-01-11' }, today)).toBe('date');
+  expect(validateHistoryFilters({ ...baseFilters, date: today }, today)).toBeNull();
+  expect(validateHistoryFilters({ ...baseFilters, date: ' 2026-01-08 ', amount: '125,5' }, today)).toBeNull();
 });

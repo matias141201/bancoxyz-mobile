@@ -3,11 +3,13 @@ export const colors = {
   surface: '#FFFFFF',
   border: '#8EA39A',
   danger: '#9C2730',
+  disabledFill: '#6B7280',
   ink: '#102F28',
   muted: '#4A645B',
   primary: '#125746',
   onPrimary: '#FFFFFF',
   accent: '#B8E8CF',
+  scrim: 'rgba(16, 47, 40, 0.46)',
 } as const;
 
 export const spacing = {

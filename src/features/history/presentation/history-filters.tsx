@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } fro
 import { colors, spacing } from '@/theme';
 
 import { type HistoryFilters as Filters, type InvalidHistoryFilter } from '../domain/history';
+import { HistoryDateFilter } from './history-date-filter';
 
 type HistoryFiltersProps = Readonly<{
   draft: Filters;
@@ -14,7 +15,7 @@ type HistoryFiltersProps = Readonly<{
 
 const fieldErrors = {
   amount: 'Ingresá un monto válido sin separador de miles.',
-  date: 'Ingresá una fecha válida en formato AAAA-MM-DD.',
+  date: 'Elegí una fecha de hoy o anterior.',
 };
 
 type FilterFieldProps = Readonly<{
@@ -48,23 +49,21 @@ export function HistoryFilters({ draft, invalidField, onChange, onApply, onClear
         maxLength={120}
         onChangeText={value => onChange('recipient', value)}
       />
-      <View style={styles.fieldRow}>
-        <FilterField
-          label="Monto exacto"
-          placeholder="Ej. 125,50"
-          keyboardType="decimal-pad"
-          maxLength={24}
-          value={draft.amount}
-          invalid={invalidField === 'amount'}
-          onChangeText={value => onChange('amount', value)}
-        />
-        <FilterField
-          label="Fecha"
-          placeholder="AAAA-MM-DD"
-          maxLength={10}
+      <FilterField
+        label="Monto exacto"
+        placeholder="Ej. 125,50"
+        keyboardType="decimal-pad"
+        maxLength={24}
+        value={draft.amount}
+        invalid={invalidField === 'amount'}
+        onChangeText={value => onChange('amount', value)}
+      />
+      <View style={styles.field}>
+        <Text style={styles.label}>Fecha</Text>
+        <HistoryDateFilter
           value={draft.date}
           invalid={invalidField === 'date'}
-          onChangeText={value => onChange('date', value)}
+          onChange={value => onChange('date', value)}
         />
       </View>
       {invalidField && (
@@ -92,8 +91,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   title: { color: colors.ink, fontSize: 18, fontWeight: '700' },
-  field: { flex: 1, minWidth: 112, gap: spacing.xs },
-  fieldRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  field: { gap: spacing.xs },
   label: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   input: {
     minHeight: 48,

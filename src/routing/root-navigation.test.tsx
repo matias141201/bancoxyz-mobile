@@ -44,16 +44,21 @@ it('protege el inicio incluso si se abre un enlace directo', async () => {
   expect(screen).toHavePathname('/');
 });
 
-it('valida los campos antes de intentar iniciar sesión', async () => {
+it('mantiene el ingreso deshabilitado hasta completar credenciales válidas', async () => {
   await renderRouter(routes, { initialUrl: '/' });
-  const submit = screen.getByRole('button', { name: 'Ingresar' });
+  const submit = () => screen.getByRole('button', { name: 'Ingresar' });
 
-  await fireEvent.press(submit);
-  expect(screen.getByText('Ingresá un correo electrónico válido.')).toBeOnTheScreen();
+  expect(submit()).toBeDisabled();
+  await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'correo-inválido');
+  await fireEvent.changeText(screen.getByLabelText('Contraseña'), 'fixture-password');
+  expect(submit()).toBeDisabled();
+  await fireEvent.press(submit());
+  expect(signInMock).not.toHaveBeenCalled();
 
   await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'demo@example.com');
-  await fireEvent.press(submit);
-  expect(screen.getByText('Ingresá tu contraseña.')).toBeOnTheScreen();
+  expect(submit()).toBeEnabled();
+  await fireEvent.changeText(screen.getByLabelText('Contraseña'), '');
+  expect(submit()).toBeDisabled();
   expect(signInMock).not.toHaveBeenCalled();
 });
 
@@ -70,6 +75,12 @@ it('activa la sesión ante una respuesta válida y permite cerrarla', async () =
   expect(screen).toHavePathname('/home');
 
   await fireEvent.press(screen.getByRole('button', { name: 'Cerrar sesión' }));
+  expect(screen.getByText('¿Cerrar sesión?')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+  expect(screen).toHavePathname('/home');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Cerrar sesión' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Sí, cerrar sesión' }));
   expect(await screen.findByRole('header', { name: 'Ingresá a tu cuenta' })).toBeOnTheScreen();
   expect(screen).toHavePathname('/');
 });
@@ -140,7 +151,7 @@ it('abre el historial desde inicio, lee los movimientos autorizados y vuelve a l
   await renderRouter(routes);
   await fillLogin();
   await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Ver historial' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Historial' }));
 
   expect(await screen.findByText('Sofía Demo')).toBeOnTheScreen();
   expect(readHistoryMock).toHaveBeenCalledWith(session.token);
@@ -177,12 +188,19 @@ it.each([
   await fillLogin();
   await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
   expect(await screen.findByText(/1\.500,00/)).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Nueva transferencia' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Transferir' }));
   expect(await screen.findByRole('header', { name: 'Nueva transferencia' })).toBeOnTheScreen();
 
   await fireEvent.changeText(screen.getByLabelText('Documento del destinatario'), '000123');
   await fireEvent.changeText(screen.getByLabelText('Monto en USD'), '12,50');
-  await fireEvent.press(screen.getByRole('button', { name: 'Revisar transferencia' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Enviar transferencia' }));
+
+  await act(() => router.back());
+  expect(screen).toHavePathname('/transfer');
+  expect(screen.getByLabelText('Documento del destinatario')).toHaveDisplayValue('000123');
+  expect(screen.getByLabelText('Monto en USD')).toHaveDisplayValue('12,50');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Enviar transferencia' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Confirmar transferencia' }));
 
   await act(() => router.back());

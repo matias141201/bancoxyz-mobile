@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { formatCalendarDate } from '@/shared/domain/calendar-date';
+import { formatCalendarDate, localCalendarDate } from '@/shared/domain/calendar-date';
 import { formatMoney } from '@/shared/domain/money';
 import { colors, spacing } from '@/theme';
 
@@ -12,6 +12,7 @@ import {
   filterHistory, validateHistoryFilters, type HistoryEntry, type HistoryFilters as Filters,
   type InvalidHistoryFilter,
 } from '../domain/history';
+import { FilterPanelMotion } from './filter-panel-motion';
 import { HistoryFilters } from './history-filters';
 
 export type HistoryState =
@@ -40,7 +41,7 @@ function HistoryRow({ item }: { item: HistoryEntry }) {
   );
 }
 
-function HistoryEmptyState({ state, onReload }: Pick<HistoryScreenProps, 'state' | 'onReload'>) {
+function HistoryEmptyState({ state, onReload, date }: Pick<HistoryScreenProps, 'state' | 'onReload'> & { date: string }) {
   if (state.status === 'loading') {
     return (
       <View style={styles.feedback} accessibilityLiveRegion="polite">
@@ -62,12 +63,16 @@ function HistoryEmptyState({ state, onReload }: Pick<HistoryScreenProps, 'state'
     );
   }
 
+  const emptyDate = date && !state.entries.some(entry => entry.date === date);
   const hasTransfers = state.entries.length > 0;
+  const emptyTitle = emptyDate
+    ? `No hay transferencias para el ${formatCalendarDate(date)}`
+    : hasTransfers ? 'No hay coincidencias' : 'Todavía no hay transferencias';
   return (
     <View style={styles.feedback} accessibilityLiveRegion="polite">
-      <Text style={styles.name}>{hasTransfers ? 'No hay coincidencias' : 'Todavía no hay transferencias'}</Text>
+      <Text style={styles.name}>{emptyTitle}</Text>
       <Text style={styles.muted}>
-        {hasTransfers ? 'Probá con otros filtros.' : 'Los movimientos aparecerán acá cuando hagas una transferencia.'}
+        {emptyDate || hasTransfers ? 'Probá con otros filtros.' : 'Los movimientos aparecerán acá cuando hagas una transferencia.'}
       </Text>
     </View>
   );
@@ -77,14 +82,16 @@ export function HistoryScreen({ state, onReload, onBack }: HistoryScreenProps) {
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
   const [invalidField, setInvalidField] = useState<InvalidHistoryFilter | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const entries = state.status === 'ready' ? state.entries : noEntries;
   const shown = useMemo(() => filterHistory(entries, applied), [entries, applied]);
 
   function onApply() {
-    const invalid = validateHistoryFilters(draft);
+    const invalid = validateHistoryFilters(draft, localCalendarDate(new Date()));
     setInvalidField(invalid);
     if (!invalid) {
-      setApplied(draft);
+      setApplied({ ...draft, date: draft.date.trim() });
+      setFiltersOpen(false);
       Keyboard.dismiss();
     }
   }
@@ -104,13 +111,32 @@ export function HistoryScreen({ state, onReload, onBack }: HistoryScreenProps) {
       <Text accessibilityRole="header" style={styles.title}>Historial</Text>
       {state.status === 'ready' && (
         <>
-          <HistoryFilters
-            draft={draft}
-            invalidField={invalidField}
-            onChange={(field, value) => setDraft(previous => ({ ...previous, [field]: value }))}
-            onApply={onApply}
-            onClear={onClear}
-          />
+          <View collapsable={false}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Filtro"
+              accessibilityState={{ expanded: filtersOpen }}
+              style={styles.filterToggle}
+              onPress={() => {
+                if (filtersOpen) Keyboard.dismiss();
+                setFiltersOpen(previous => !previous);
+              }}
+            >
+              <Text style={styles.actionLabel}>Filtro</Text>
+              <Text aria-hidden style={[styles.actionLabel, filtersOpen && styles.filterArrowExpanded]}>→</Text>
+            </Pressable>
+            {filtersOpen && (
+              <FilterPanelMotion>
+                <HistoryFilters
+                  draft={draft}
+                  invalidField={invalidField}
+                  onChange={(field, value) => setDraft(previous => ({ ...previous, [field]: value }))}
+                  onApply={onApply}
+                  onClear={onClear}
+                />
+              </FilterPanelMotion>
+            )}
+          </View>
           <View style={styles.listHeading}>
             <Text accessibilityRole="header" style={styles.section}>Transferencias</Text>
             <Pressable
@@ -145,7 +171,7 @@ export function HistoryScreen({ state, onReload, onBack }: HistoryScreenProps) {
         keyExtractor={item => item.key}
         renderItem={({ item }) => <HistoryRow item={item} />}
         ListHeaderComponent={heading}
-        ListEmptyComponent={<HistoryEmptyState state={state} onReload={onReload} />}
+        ListEmptyComponent={<HistoryEmptyState state={state} onReload={onReload} date={applied.date} />}
       />
     </SafeAreaView>
   );
@@ -160,6 +186,8 @@ const styles = StyleSheet.create({
   section: { color: colors.ink, fontSize: 18, fontWeight: '700' },
   action: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start', paddingVertical: spacing.xs },
   actionLabel: { color: colors.primary, fontSize: 15, fontWeight: '700' },
+  filterToggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs },
+  filterArrowExpanded: { transform: [{ rotate: '90deg' }] },
   listHeading: {
     flexDirection: 'row',
     flexWrap: 'wrap',

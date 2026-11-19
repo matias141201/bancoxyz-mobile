@@ -1,5 +1,5 @@
 import { usePreventRemove, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { readBalance } from '@/composition/balance';
 import { sendTransfer } from '@/composition/transfer';
@@ -12,8 +12,11 @@ export default function TransferRoute() {
   const router = useRouter();
   const { session, expireSession } = useAuth();
   const [sending, setSending] = useState(false);
-  // Keep the route mounted until the server outcome is known.
-  usePreventRemove(sending, () => undefined);
+  const [reviewBack, setReviewBack] = useState<(() => void) | null>(null);
+  const onReviewBackChange = useCallback((action: (() => void) | null) => setReviewBack(() => action), []);
+  usePreventRemove(Boolean(session) && (sending || reviewBack !== null), () => {
+    if (!sending) reviewBack?.();
+  });
 
   useEffect(() => {
     if (!sending || process.env.EXPO_OS !== 'web') return;
@@ -21,6 +24,7 @@ export default function TransferRoute() {
     window.addEventListener('beforeunload', preventUnload);
     return () => window.removeEventListener('beforeunload', preventUnload);
   }, [sending]);
+
   const { state, reload } = usePrivateResource(session?.token, readBalance, expireSession);
   const back = () => router.dismissTo('/home');
 
@@ -33,6 +37,7 @@ export default function TransferRoute() {
   return (
     <TransferScreen
       currency={state.data.currency}
+      availableBalance={state.data.amount}
       submit={async order => {
         setSending(true);
         try {
@@ -44,6 +49,7 @@ export default function TransferRoute() {
       onSuccess={back}
       onUnauthorized={expireSession}
       onBack={back}
+      onReviewBackChange={onReviewBackChange}
       onViewHistory={() => router.replace('/history')}
     />
   );

@@ -49,12 +49,12 @@ function normalizeName(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
 }
 
-export function validateHistoryFilters(filters: HistoryFilters): InvalidHistoryFilter | null {
+export function validateHistoryFilters(filters: HistoryFilters, today: string): InvalidHistoryFilter | null {
   const amount = filters.amount.trim();
   const date = filters.date.trim();
 
   if (amount && parseMajorAmount(amount, maxCurrencyFractionDigits) === null) return 'amount';
-  if (date && !isCalendarDate(date)) return 'date';
+  if (date && (!isCalendarDate(date) || date > today)) return 'date';
   return null;
 }
 

@@ -1,6 +1,7 @@
 import { isCalendarDate } from '@/shared/domain/calendar-date';
-import { currencyFractionDigits, parseMajorAmount } from '@/shared/domain/money';
+import { currencyFractionDigits, majorToMinor } from '@/shared/domain/money';
 
+import { parseTransferAmount } from './transfer-amount';
 import type { TransferOrder } from './transfer-order';
 
 export type TransferDraft = Readonly<{
@@ -10,29 +11,36 @@ export type TransferDraft = Readonly<{
   date: string;
 }>;
 
-type TransferField = 'recipientDocument' | 'amount' | 'date';
+type TransferField = 'recipientDocument' | 'amount' | 'balance' | 'date';
 type DraftResult = { ok: true; order: TransferOrder } | { ok: false; field: TransferField };
 export const maximumDocumentLength = 64;
 
-export function validateTransferDraft(draft: TransferDraft, currency: string, today: string): DraftResult {
+export function validateTransferDraft(
+  draft: TransferDraft, currency: string, today: string, availableBalance: number,
+): DraftResult {
   const recipientDocument = draft.recipientDocument.trim();
   if (
-    !recipientDocument
+    !/^\d+$/u.test(recipientDocument)
     || recipientDocument.length > maximumDocumentLength
-    || /\p{Cc}/u.test(recipientDocument)
   ) {
     return { ok: false, field: 'recipientDocument' };
   }
 
   const fractionDigits = currencyFractionDigits(currency);
-  const amountMinor = fractionDigits === null ? null : parseMajorAmount(draft.amount, fractionDigits);
+  const amountMinor = fractionDigits === null ? null : parseTransferAmount(draft.amount, fractionDigits);
   if (fractionDigits === null || amountMinor === null || amountMinor <= 0) {
     return { ok: false, field: 'amount' };
   }
 
   const majorAmount = amountMinor / 10 ** fractionDigits;
-  if (parseMajorAmount(String(majorAmount), fractionDigits) !== amountMinor) {
+  if (majorToMinor(majorAmount, fractionDigits) !== amountMinor) {
     return { ok: false, field: 'amount' };
+  }
+
+  const balanceMinor = majorToMinor(availableBalance, fractionDigits);
+  const exceedsBalance = balanceMinor === null ? majorAmount > availableBalance : amountMinor > balanceMinor;
+  if (!Number.isFinite(availableBalance) || exceedsBalance) {
+    return { ok: false, field: 'balance' };
   }
 
   const date = draft.timing === 'now' ? today : draft.date;

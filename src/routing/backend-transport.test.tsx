@@ -54,10 +54,10 @@ it('envía el contrato real desde el formulario y vuelve a consultar el backend 
   await press('Ingresar');
   expect(await screen.findByText(/1\.500,00/)).toBeOnTheScreen();
 
-  await press('Nueva transferencia');
+  await press('Transferir');
   await fireEvent.changeText(await screen.findByLabelText('Documento del destinatario'), '000123');
   await fireEvent.changeText(screen.getByLabelText('Monto en USD'), '12,50');
-  await press('Revisar transferencia');
+  await press('Enviar transferencia');
   const transferDate = localCalendarDate(new Date());
   await press('Confirmar transferencia');
 

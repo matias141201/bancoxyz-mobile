@@ -1,5 +1,6 @@
 import { validateTransferDraft } from './transfer-draft';
 
+const balance = 5000;
 const draft = {
   recipientDocument: ' 000123 ',
   amount: '12,35',
@@ -8,7 +9,7 @@ const draft = {
 };
 
 it('conserva el documento como texto y usa la fecha local para transferencias inmediatas', () => {
-  expect(validateTransferDraft(draft, 'ARS', '2026-11-19')).toEqual({
+  expect(validateTransferDraft(draft, 'ARS', '2026-11-19', balance)).toEqual({
     ok: true,
     order: {
       amountMinor: 1235,
@@ -21,23 +22,23 @@ it('conserva el documento como texto y usa la fecha local para transferencias in
 });
 
 it('conserva una fecha futura válida y aplica la precisión de la moneda', () => {
-  expect(validateTransferDraft({ ...draft, timing: 'future', date: '2028-02-29', amount: '2.155' }, 'KWD', '2028-02-28'))
+  expect(validateTransferDraft({ ...draft, timing: 'future', date: '2028-02-29', amount: '2,155' }, 'KWD', '2028-02-28', balance))
     .toMatchObject({ ok: true, order: { amountMinor: 2155, fractionDigits: 3, date: '2028-02-29' } });
-  expect(validateTransferDraft({ ...draft, amount: '15' }, 'JPY', '2026-11-19'))
+  expect(validateTransferDraft({ ...draft, amount: '15' }, 'JPY', '2026-11-19', balance))
     .toMatchObject({ ok: true, order: { amountMinor: 15, fractionDigits: 0 } });
 });
 
-it.each(['', '   ', '00\u0000123'])('rechaza un documento inválido', recipientDocument => {
-  expect(validateTransferDraft({ ...draft, recipientDocument }, 'ARS', '2026-11-19')).toEqual({
+it.each(['', '   ', '00\u0000123', '12-34', '12A34'])('rechaza un documento inválido', recipientDocument => {
+  expect(validateTransferDraft({ ...draft, recipientDocument }, 'ARS', '2026-11-19', balance)).toEqual({
     ok: false,
     field: 'recipientDocument',
   });
 });
 
-it.each(['', '0', '-25', '12.001', '1,200.00', '90071992547409.91'])(
+it.each(['', '0', '-25', '12,001', '1,200.00', '90071992547409.91'])(
   'rechaza montos no positivos, ambiguos o que no se pueden enviar con exactitud',
   amount => {
-    expect(validateTransferDraft({ ...draft, amount }, 'ARS', '2026-11-19')).toEqual({
+    expect(validateTransferDraft({ ...draft, amount }, 'ARS', '2026-11-19', balance)).toEqual({
       ok: false,
       field: 'amount',
     });
@@ -47,9 +48,18 @@ it.each(['', '0', '-25', '12.001', '1,200.00', '90071992547409.91'])(
 it.each(['', '2026-02-31', '2026-11-19', '2026-11-18'])(
   'requiere una fecha real estrictamente posterior a hoy',
   date => {
-    expect(validateTransferDraft({ ...draft, timing: 'future', date }, 'ARS', '2026-11-19')).toEqual({
+    expect(validateTransferDraft({ ...draft, timing: 'future', date }, 'ARS', '2026-11-19', balance)).toEqual({
       ok: false,
       field: 'date',
     });
   },
 );
+
+
+it('compara montos formateados con el saldo al centavo y admite un importe igual', () => {
+  const formatted = { ...draft, amount: '1.000,25' };
+  expect(validateTransferDraft(formatted, 'ARS', '2026-11-19', 1000.25))
+    .toMatchObject({ ok: true, order: { amountMinor: 100025 } });
+  expect(validateTransferDraft(formatted, 'ARS', '2026-11-19', 1000.24))
+    .toEqual({ ok: false, field: 'balance' });
+});

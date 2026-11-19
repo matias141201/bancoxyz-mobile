@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import {
   KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -23,22 +23,21 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
+  const [emailBlurred, setEmailBlurred] = useState(false);
+  const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   const submitting = useRef(false);
+  const validation = validateCredentials({ email, password });
+  const disabled = pending || !validation.ok;
+  const invalidEmail = emailBlurred && email.trim() !== '' && !validation.ok && validation.field === 'email';
 
   async function submit() {
-    if (submitting.current) return;
-
-    const result = validateCredentials({ email, password });
-    if (!result.ok) {
-      setNotice(result.field === 'email' ? 'Ingresá un correo electrónico válido.' : 'Ingresá tu contraseña.');
-      return;
-    }
+    if (submitting.current || !validation.ok) return;
 
     submitting.current = true;
     setPending(true);
     setNotice('');
     try {
-      const attempt = await authenticate(result.credentials);
+      const attempt = await authenticate(validation.credentials);
       if (!attempt.ok) setNotice(errorMessage[attempt.error]);
     } catch {
       setNotice(errorMessage.unavailable);
@@ -53,7 +52,7 @@ export function LoginScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.fields} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
             <View style={styles.brand}>
               <Text style={styles.brandName}>BancoXYZ<Text style={styles.brandAccent}>.</Text></Text>
@@ -70,16 +69,25 @@ export function LoginScreen() {
                   autoCorrect={false}
                   editable={!pending}
                   keyboardType="email-address"
+                  onBlur={() => setEmailBlurred(true)}
                   onChangeText={setEmail}
+                  onSubmitEditing={() => passwordInput.current?.focus()}
                   placeholder="nombre@ejemplo.com"
                   placeholderTextColor={colors.muted}
-                  style={styles.input}
+                  returnKeyType="next"
+                  style={[styles.input, invalidEmail && styles.invalidInput]}
                   value={email}
                 />
+                {invalidEmail && (
+                  <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+                    Ingresá un correo electrónico válido.
+                  </Text>
+                )}
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Contraseña</Text>
                 <TextInput
+                  ref={passwordInput}
                   accessibilityLabel="Contraseña"
                   autoCapitalize="none"
                   autoComplete="current-password"
@@ -97,19 +105,21 @@ export function LoginScreen() {
                   {visibleNotice}
                 </Text>
               )}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Ingresar"
-                accessibilityState={{ disabled: pending, busy: pending }}
-                disabled={pending}
-                onPress={() => void submit()}
-                style={[styles.button, pending && styles.pending]}
-              >
-                <Text style={styles.buttonLabel}>{pending ? 'Ingresando…' : 'Ingresar'}</Text>
-              </Pressable>
             </View>
           </View>
         </ScrollView>
+        <View style={styles.footer}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ingresar"
+            accessibilityState={{ disabled, busy: pending }}
+            disabled={disabled}
+            onPress={() => void submit()}
+            style={[styles.button, disabled && styles.disabled]}
+          >
+            <Text style={styles.buttonLabel}>{pending ? 'Ingresando…' : 'Ingresar'}</Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -117,7 +127,8 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
-  scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg },
+  fields: { flex: 1 },
+  scroll: { padding: spacing.lg },
   content: { width: '100%', maxWidth: 460, alignSelf: 'center', gap: spacing.lg },
   brand: {
     alignItems: 'flex-start',
@@ -146,7 +157,9 @@ const styles = StyleSheet.create({
     borderRadius: spacing.sm,
     fontSize: 16,
   },
+  invalidInput: { borderColor: colors.danger },
   error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
+  footer: { width: '100%', maxWidth: 508, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   button: {
     minHeight: 52,
     paddingVertical: spacing.sm,
@@ -156,6 +169,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pending: { backgroundColor: colors.muted },
+  disabled: { backgroundColor: colors.disabledFill },
   buttonLabel: { color: colors.onPrimary, fontWeight: '700', fontSize: 16 },
 });

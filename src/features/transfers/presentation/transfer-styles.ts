@@ -4,7 +4,16 @@ import { colors, spacing } from '@/theme';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
+  scroll: { flex: 1 },
   content: { width: '100%', maxWidth: 480, alignSelf: 'center', padding: spacing.lg, gap: spacing.lg },
+  footer: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+  },
   stack: { gap: spacing.md },
   field: { gap: spacing.xs },
   heading: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
@@ -21,19 +30,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  choice: {
-    flexGrow: 1,
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.sm,
-    padding: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  activeChoice: { borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.accent },
   action: {
     minHeight: 52,
     justifyContent: 'center',
@@ -45,6 +41,7 @@ export const styles = StyleSheet.create({
   },
   actionLabel: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
   secondary: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.xs },
+  centered: { alignSelf: 'center' },
   secondaryLabel: { color: colors.primary, fontSize: 16, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   summary: {
