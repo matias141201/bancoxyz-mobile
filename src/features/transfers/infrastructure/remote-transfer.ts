@@ -30,25 +30,6 @@ async function readOutcome(response: Awaited<ReturnType<TransferRequest>>): Prom
   return { ok: false, error: 'uncertain', httpStatus };
 }
 
-function transferBody({ amountMinor, fractionDigits, currency, recipientDocument, date }: TransferOrder) {
-  const amount = amountMinor / 10 ** fractionDigits;
-
-  // Keep the field variants from the verified request until BancoXYZ publishes the required keys.
-  return {
-    value: amount,
-    amount,
-    valor: amount,
-    currency,
-    moneda: currency,
-    documentPayeer: recipientDocument,
-    payeerDocument: recipientDocument,
-    documentoPayeer: recipientDocument,
-    transferDate: date,
-    date,
-    fechaDeTransferencia: date,
-  };
-}
-
 export function createRemoteTransfer(location: string | undefined, request: TransferRequest) {
   const endpoint = httpsEndpoint(location);
 
@@ -67,7 +48,12 @@ export function createRemoteTransfer(location: string | undefined, request: Tran
           Authorization: `Bearer ${token}`,
         },
         redirect: 'error',
-        body: JSON.stringify(transferBody(transfer)),
+        body: JSON.stringify({
+          value: transfer.amountMinor / 10 ** transfer.fractionDigits,
+          currency: transfer.currency,
+          payeerDocument: transfer.recipientDocument,
+          transferDate: transfer.date,
+        }),
         signal: controller.signal,
       });
 

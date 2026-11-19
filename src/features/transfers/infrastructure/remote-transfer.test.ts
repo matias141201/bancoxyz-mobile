@@ -10,7 +10,7 @@ const order: TransferOrder = {
 };
 const location = 'https://bank.example/transfer';
 
-it('envía el cuerpo aceptado por BancoXYZ con el token de sesión y conserva la fecha', async () => {
+it('envía exclusivamente los cuatro campos verificados con BancoXYZ', async () => {
   const request = jest.fn().mockResolvedValue(Response.json({ status: 'success' }));
 
   await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({ ok: true });
@@ -24,16 +24,9 @@ it('envía el cuerpo aceptado por BancoXYZ con el token de sesión y conserva la
     redirect: 'error',
     body: JSON.stringify({
       value: 23.01,
-      amount: 23.01,
-      valor: 23.01,
       currency: 'ARS',
-      moneda: 'ARS',
-      documentPayeer: '001234',
       payeerDocument: '001234',
-      documentoPayeer: '001234',
       transferDate: '2027-01-10',
-      date: '2027-01-10',
-      fechaDeTransferencia: '2027-01-10',
     }),
     signal: expect.any(AbortSignal),
   }));
