@@ -1,5 +1,5 @@
-import { WelcomeScreen } from '@/features/welcome/presentation/welcome-screen';
+import { LoginScreen } from '@/features/auth/presentation/login-screen';
 
 export default function IndexRoute() {
-  return <WelcomeScreen />;
+  return <LoginScreen />;
 }

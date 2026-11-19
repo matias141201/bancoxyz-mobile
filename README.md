@@ -11,10 +11,11 @@ Aplicación móvil para la prueba técnica de BancoXYZ. Usa React Native, Expo S
 
 ```sh
 npm ci
+cp .env.example .env.local
 npm start
 ```
 
-Escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`.
+Configurá `EXPO_PUBLIC_LOGIN_URL` con el endpoint HTTPS del enunciado y usá una cuenta de evaluación provista por el contacto de la prueba. Después iniciá Expo y escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`.
 
 ## Pruebas y calidad
 
@@ -35,4 +36,4 @@ Jest incluye pruebas de componentes y navegación. El umbral global de esta base
 
 ## Estado
 
-La base de Expo y el acceso inicial están en desarrollo. La autenticación, el saldo y las transferencias se integran en ramas de funcionalidad.
+El login abre una ruta privada y mantiene la sesión en memoria hasta cerrar sesión o reiniciar la app. El saldo y las transferencias se integran en ramas de funcionalidad.
