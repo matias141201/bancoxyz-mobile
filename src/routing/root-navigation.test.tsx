@@ -3,18 +3,22 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 
 import RootLayout from '@/app/_layout';
 import HomeRoute from '@/app/home';
+import HistoryRoute from '@/app/history';
 import IndexRoute from '@/app/index';
 import { readBalance } from '@/composition/balance';
+import { readHistory } from '@/composition/history';
 import { signIn } from '@/composition/sign-in';
 import type { SignInResult } from '@/features/auth/application/sign-in';
 
 jest.mock('@/composition/balance', () => ({ readBalance: jest.fn() }));
+jest.mock('@/composition/history', () => ({ readHistory: jest.fn() }));
 jest.mock('@/composition/sign-in', () => ({ signIn: jest.fn() }));
 
 const signInMock = jest.mocked(signIn);
+const readHistoryMock = jest.mocked(readHistory);
 const readBalanceMock = jest.mocked(readBalance);
 const session = { token: 'fixture-token', user: { id: 7, name: 'Cliente de prueba', email: 'demo@example.com' } };
-const routes = { _layout: RootLayout, index: IndexRoute, home: HomeRoute };
+const routes = { _layout: RootLayout, index: IndexRoute, home: HomeRoute, history: HistoryRoute };
 
 async function fillLogin() {
   await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'demo@example.com');
@@ -23,6 +27,7 @@ async function fillLogin() {
 
 beforeEach(() => {
   signInMock.mockReset();
+  readHistoryMock.mockReset().mockResolvedValue({ ok: true, data: [] });
   readBalanceMock.mockReset().mockResolvedValue({ ok: true, data: { amount: 1500, currency: 'USD' } });
 });
 
@@ -101,6 +106,7 @@ it('lee el saldo autenticado, conserva la última lectura si falla un refresco y
   await fireEvent.press(screen.getByRole('button', { name: 'Actualizar saldo' }));
   expect(await screen.findByText('El servicio no está disponible. Intentá de nuevo.')).toBeOnTheScreen();
   expect(screen.getByText(/1\.750,25/)).toBeOnTheScreen();
+  expect(screen.getByText('Último saldo consultado')).toBeOnTheScreen();
 
   await fireEvent.press(screen.getByRole('button', { name: 'Actualizar saldo' }));
   expect(await screen.findByText(/2\.200,50/)).toBeOnTheScreen();
@@ -116,4 +122,31 @@ it('cierra el acceso privado si la API indica que venció la sesión', async () 
 
   expect(await screen.findByText('Tu sesión venció. Volvé a ingresar.')).toBeOnTheScreen();
   expect(screen).toHavePathname('/');
+});
+
+
+it('abre el historial desde inicio, lee los movimientos autorizados y vuelve a la cuenta', async () => {
+  signInMock.mockResolvedValue({ ok: true, session });
+  readHistoryMock.mockResolvedValue({
+    ok: true,
+    data: [{ key: '1', date: '2026-08-21', amountMinor: 1025, currency: 'USD', recipientName: 'Sofía Demo' }],
+  });
+  await renderRouter(routes);
+  await fillLogin();
+  await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Ver historial' }));
+
+  expect(await screen.findByText('Sofía Demo')).toBeOnTheScreen();
+  expect(readHistoryMock).toHaveBeenCalledWith(session.token);
+  expect(screen).toHavePathname('/history');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Volver al inicio' }));
+  expect(screen).toHavePathname('/home');
+});
+
+it('protege un enlace directo al historial sin sesión', async () => {
+  await renderRouter(routes, { initialUrl: '/history' });
+
+  expect(await screen.findByRole('header', { name: 'Ingresá a tu cuenta' })).toBeOnTheScreen();
+  expect(readHistoryMock).not.toHaveBeenCalled();
 });

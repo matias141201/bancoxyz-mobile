@@ -15,6 +15,7 @@ function Routes() {
       </Stack.Protected>
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="home" />
+        <Stack.Screen name="history" />
       </Stack.Protected>
     </Stack>
   );

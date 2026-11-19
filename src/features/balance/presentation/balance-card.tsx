@@ -22,7 +22,9 @@ export function BalanceCard({ state, onReload }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.title}>Saldo de la cuenta</Text>
+      <Text accessibilityRole="header" style={styles.title}>
+        {state.status === 'ready' && state.message ? 'Último saldo consultado' : 'Saldo de la cuenta'}
+      </Text>
       {state.status === 'loading' ? (
         <View style={styles.loading} accessibilityLiveRegion="polite">
           <ActivityIndicator color={colors.accent} />
