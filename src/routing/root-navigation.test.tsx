@@ -158,16 +158,19 @@ it('protege un enlace directo al historial sin sesión', async () => {
 });
 
 
-it('recorre login, saldo, envío confirmado e historial con una API simulada', async () => {
+it.each([
+  { case: 'con movimiento publicado', amount: 1487.5, displayed: /1\.487,50/, historyText: 'Sofía Demo', hasEntry: true },
+  { case: 'sin movimiento publicado', amount: 1500, displayed: /1\.500,00/, historyText: 'Todavía no hay transferencias', hasEntry: false },
+])('consulta historial y saldo después de una solicitud aceptada $case', async ({ amount, displayed, historyText, hasEntry }) => {
   signInMock.mockResolvedValue({ ok: true, session });
   const initialBalance = { ok: true, data: { amount: 1500, currency: 'USD' } } as const;
   readBalanceMock.mockResolvedValueOnce(initialBalance).mockResolvedValueOnce(initialBalance)
-    .mockResolvedValue({ ok: true, data: { amount: 1487.5, currency: 'USD' } });
+    .mockResolvedValue({ ok: true, data: { amount, currency: 'USD' } });
   const transfer = Promise.withResolvers<Awaited<ReturnType<typeof sendTransfer>>>();
   sendTransferMock.mockReturnValue(transfer.promise);
   readHistoryMock.mockResolvedValue({
     ok: true,
-    data: [{ key: '2', date: '2026-08-22', amountMinor: 1250, currency: 'USD', recipientName: 'Sofía Demo' }],
+    data: hasEntry ? [{ key: '2', date: '2026-08-22', amountMinor: 1250, currency: 'USD', recipientName: 'Sofía Demo' }] : [],
   });
 
   await renderRouter(routes);
@@ -185,13 +188,15 @@ it('recorre login, saldo, envío confirmado e historial con una API simulada', a
   await act(() => router.back());
   expect(screen).toHavePathname('/transfer');
   await act(async () => { transfer.resolve({ ok: true }); });
-  expect(await screen.findByRole('header', { name: 'Transferencia confirmada' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Solicitud aceptada' })).toBeOnTheScreen();
   expect(sendTransferMock).toHaveBeenCalledWith(session.token, expect.objectContaining({
     recipientDocument: '000123', amountMinor: 1250, currency: 'USD',
   }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Volver al inicio' }));
-  expect(await screen.findByText(/1\.487,50/)).toBeOnTheScreen();
-
   await fireEvent.press(screen.getByRole('button', { name: 'Ver historial' }));
-  expect(await screen.findByText('Sofía Demo')).toBeOnTheScreen();
+  expect(await screen.findByText(historyText)).toBeOnTheScreen();
+  expect(readHistoryMock).toHaveBeenCalledWith(session.token);
+  await fireEvent.press(screen.getByRole('button', { name: 'Volver al inicio' }));
+  expect(await screen.findByText(displayed)).toBeOnTheScreen();
+  expect(readBalanceMock).toHaveBeenCalledTimes(3);
+  expect(sendTransferMock).toHaveBeenCalledTimes(1);
 });

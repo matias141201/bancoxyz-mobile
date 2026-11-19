@@ -57,8 +57,8 @@ async function press(name: string) {
   await fireEvent.press(screen.getByRole('button', { name }));
 }
 
-it('permite una transferencia inmediata y muestra su confirmación antes de enviar', async () => {
-  const { submit, onSuccess } = await renderTransfer();
+it('muestra la aceptación del servidor y permite consultar movimientos desde el recibo', async () => {
+  const { submit, onSuccess, onViewHistory } = await renderTransfer();
   submit.mockResolvedValue({ ok: true });
 
   await fillDraft();
@@ -68,8 +68,10 @@ it('permite una transferencia inmediata y muestra su confirmación antes de envi
   expect(screen.getByText('19/11/2026')).toBeOnTheScreen();
   await press('Confirmar transferencia');
 
-  expect(await screen.findByRole('header', { name: 'Transferencia confirmada' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Solicitud aceptada' })).toBeOnTheScreen();
   expect(submit).toHaveBeenCalledWith(expect.objectContaining({ amountMinor: 1250, date: '2026-11-19' }));
+  await press('Ver historial');
+  expect(onViewHistory).toHaveBeenCalledTimes(1);
   expect(onSuccess).not.toHaveBeenCalled();
   await press('Volver al inicio');
   expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -95,7 +97,7 @@ it('requiere una fecha futura válida y preserva los campos al corregir un recha
   expect(screen.getByLabelText('Documento del destinatario')).toHaveDisplayValue('001234');
   await press('Revisar transferencia');
   await press('Confirmar transferencia');
-  expect(await screen.findByRole('header', { name: 'Transferencia programada' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Solicitud de programación aceptada' })).toBeOnTheScreen();
   expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ date: '2026-12-01' }));
 });
 

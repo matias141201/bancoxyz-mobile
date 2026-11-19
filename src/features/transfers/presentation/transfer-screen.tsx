@@ -61,13 +61,14 @@ function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, tod
     return (
       <View style={styles.stack}>
         <Text accessibilityRole="header" style={styles.heading}>
-          {draft.timing === 'future' ? 'Transferencia programada' : 'Transferencia confirmada'}
+          {draft.timing === 'future' ? 'Solicitud de programación aceptada' : 'Solicitud aceptada'}
         </Text>
         <Text style={styles.description}>
-          El servidor aceptó la solicitud. Consultá el historial para verificar si figura el movimiento.
+          Consultá el historial para verificar si el banco registró el movimiento.
         </Text>
         <TransferSummary order={step.order} />
-        <TransferButton title="Volver al inicio" onPress={onSuccess} />
+        {onViewHistory && <TransferButton title="Ver historial" onPress={onViewHistory} />}
+        <TransferButton title="Volver al inicio" onPress={onSuccess} secondary={Boolean(onViewHistory)} />
       </View>
     );
   }
