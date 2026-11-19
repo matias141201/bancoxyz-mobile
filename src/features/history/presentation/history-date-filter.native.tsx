@@ -1,8 +1,8 @@
-import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatCalendarDate, localCalendarDate } from '@/shared/domain/calendar-date';
+import { CalendarPicker } from '@/shared/presentation/calendar-picker';
 import { colors, spacing } from '@/theme';
 
 import type { HistoryDateFilterProps } from './history-date-filter';
@@ -35,17 +35,11 @@ export function HistoryDateFilter({ value, invalid, onChange }: HistoryDateFilte
         <Text style={styles.label}>{label}</Text>
       </Pressable>
       {open && (
-        <DateTimePicker
-          mode="date"
-          display="inline"
-          locale="es-AR"
+        <CalendarPicker
           value={value && value < today ? new Date(`${value}T12:00:00`) : maximumDate}
           maximumDate={maximumDate}
-          accentColor={colors.primary}
-          onValueChange={(_event, date) => onSelect(date)}
+          onSelect={onSelect}
           onDismiss={() => setOpen(false)}
-          positiveButton={{ label: 'Elegir' }}
-          negativeButton={{ label: 'Cancelar' }}
           testID="history-date-picker"
         />
       )}

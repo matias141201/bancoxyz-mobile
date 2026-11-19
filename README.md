@@ -54,4 +54,10 @@ Login, saldo e historial se verificaron contra la API de evaluación. La sesión
 
 Para probar una transferencia, el campo **Documento del destinatario** usa el valor de `payeer.document` del historial. Los ID de la tabla de credenciales corresponden a las cuentas de acceso. En la comprobación de evaluación, el backend aceptó un envío inmediato de USD 0,01 con el documento de un destinatario del historial.
 
-Cada confirmación envía un único POST al backend con `value`, `currency`, `payeerDocument` y `transferDate`. Verificamos esos cuatro campos en una prueba controlada. La API devolvió HTTP 200 y `status: "success"`, pero sus consultas posteriores de saldo e historial no reflejaron el envío. La pantalla de aceptación enlaza al historial, que se vuelve a consultar al abrirlo. El saldo también se vuelve a consultar al volver al inicio. La persistencia del envío y la ejecución de fechas futuras siguen pendientes de verificación con el proveedor.
+Cada confirmación envía un único `POST /transfer` con `value`, `currency`, `payeerDocument` y `transferDate`. La prueba controlada verificó que la API acepta esos cuatro campos.
+
+### Incidencia del backend de evaluación
+
+- El envío de prueba devolvió HTTP 200 con `status: "success"`. Las consultas directas posteriores a `GET /balance` y `GET /transferList` devolvieron exactamente el mismo saldo e historial que antes del envío.
+- Dos cuentas de evaluación distintas recibieron el mismo token, el mismo saldo y los mismos movimientos. Las consultas repetidas sin caché reprodujeron el resultado.
+- La app consulta el historial al abrirlo y el saldo al volver al inicio. Ambas pantallas muestran los datos que devuelve la API. El proveedor debe verificar la persistencia de los envíos y la ejecución de fechas programadas.

@@ -1,9 +1,8 @@
-import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { formatCalendarDate, isCalendarDate, localCalendarDate } from '@/shared/domain/calendar-date';
-import { colors } from '@/theme';
+import { CalendarPicker } from '@/shared/presentation/calendar-picker';
 
 import { TransferButton } from './transfer-button';
 import type { TransferDateFieldProps } from './transfer-date-field';
@@ -21,7 +20,7 @@ export function TransferDateField({ value, minimum, onChange }: TransferDateFiel
   const [open, setOpen] = useState(false);
   const selected = parseLocalDate(value, minimum);
 
-  function handleChange(_event: unknown, date: Date) {
+  function handleChange(date: Date) {
     setOpen(false);
     onChange(localCalendarDate(date));
   }
@@ -37,17 +36,12 @@ export function TransferDateField({ value, minimum, onChange }: TransferDateFiel
         />
       )}
       {(!isAndroid || open) && (
-        <DateTimePicker
-          mode="date"
+        <CalendarPicker
           display="compact"
-          locale="es-AR"
           value={selected}
           minimumDate={minimum}
-          accentColor={colors.primary}
-          onValueChange={handleChange}
+          onSelect={handleChange}
           onDismiss={() => setOpen(false)}
-          positiveButton={{ label: 'Elegir' }}
-          negativeButton={{ label: 'Cancelar' }}
           testID="transfer-date-picker"
         />
       )}
