@@ -32,7 +32,7 @@ credentials.json
 .github/copilot-instructions.md
 .mcp.json
 **/*.md
-!README.md
+!/README.md
 *.pdf
 *.docx
 
