@@ -1,0 +1,42 @@
+# Expo, dependencias y resultados generados
+node_modules/
+.expo/
+dist/
+web-build/
+coverage/
+expo-env.d.ts
+*.tsbuildinfo
+*.log
+ios/
+android/
+
+# Entorno, credenciales y firma
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
+*.local
+
+# Enunciado, notas y herramientas de IA
+.local/
+.agents/
+.codex/
+.claude/
+.cursor/
+.github/copilot-instructions.md
+.mcp.json
+**/*.md
+!README.md
+*.pdf
+*.docx
+
+# Editor y sistema
+.DS_Store
+.idea/
+.vscode/
