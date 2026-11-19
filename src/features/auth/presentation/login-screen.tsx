@@ -18,7 +18,7 @@ const errorMessage: Record<SignInError, string> = {
 };
 
 export function LoginScreen() {
-  const { authenticate } = useAuth();
+  const { authenticate, notice: authNotice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -47,6 +47,8 @@ export function LoginScreen() {
       setPending(false);
     }
   }
+
+  const visibleNotice = pending ? '' : notice || authNotice;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -90,9 +92,9 @@ export function LoginScreen() {
                   value={password}
                 />
               </View>
-              {notice !== '' && (
+              {visibleNotice !== '' && (
                 <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
-                  {notice}
+                  {visibleNotice}
                 </Text>
               )}
               <Pressable

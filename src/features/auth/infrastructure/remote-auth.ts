@@ -1,15 +1,8 @@
+import { httpsEndpoint } from '@/shared/network/https-endpoint';
+
 import type { Session, SignIn, SignInResult } from '../application/sign-in';
 
 type RequestLogin = (url: string, init: RequestInit) => Promise<Pick<Response, 'status' | 'ok' | 'json'>>;
-
-function parseEndpoint(location: string | undefined): URL | null {
-  try {
-    const url = new URL(location ?? '');
-    return url.protocol === 'https:' && !url.username && !url.password ? url : null;
-  } catch {
-    return null;
-  }
-}
 
 function parseSession(data: unknown): Session | null {
   if (typeof data !== 'object' || data === null || !('token' in data) || !('user' in data)) {
@@ -48,7 +41,7 @@ async function readSession(response: Awaited<ReturnType<RequestLogin>>): Promise
 }
 
 export function createRemoteAuth(location: string | undefined, request: RequestLogin): SignIn {
-  const endpoint = parseEndpoint(location);
+  const endpoint = httpsEndpoint(location);
 
   return async ({ email, password }) => {
     if (!endpoint) return { ok: false, error: 'misconfigured' };
@@ -56,7 +49,7 @@ export function createRemoteAuth(location: string | undefined, request: RequestL
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
     try {
-      const response = await request(endpoint.href, {
+      const response = await request(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ email, password }),

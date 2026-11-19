@@ -15,7 +15,7 @@ cp .env.example .env.local
 npm start
 ```
 
-Configurá `EXPO_PUBLIC_LOGIN_URL` con el endpoint HTTPS del enunciado y usá una cuenta de evaluación provista por el contacto de la prueba. Después iniciá Expo y escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`.
+Configurá `EXPO_PUBLIC_LOGIN_URL` y `EXPO_PUBLIC_BALANCE_URL` con los endpoints HTTPS de evaluación. Para saldo se usa la ruta `/default/balance`. Usá una cuenta de evaluación provista por el contacto de la prueba. Después iniciá Expo y escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`.
 
 ## Pruebas y calidad
 
@@ -36,4 +36,4 @@ Jest incluye pruebas de componentes y navegación. El umbral global de esta base
 
 ## Estado
 
-El login abre una ruta privada y mantiene la sesión en memoria hasta cerrar sesión o reiniciar la app. El saldo y las transferencias se integran en ramas de funcionalidad.
+El login abre una ruta privada y mantiene la sesión en memoria hasta cerrar sesión o reiniciar la app. El inicio consulta el saldo y permite actualizarlo. Las transferencias y el historial se integran en ramas de funcionalidad.

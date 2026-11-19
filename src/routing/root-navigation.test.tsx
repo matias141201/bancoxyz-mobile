@@ -4,12 +4,16 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 import RootLayout from '@/app/_layout';
 import HomeRoute from '@/app/home';
 import IndexRoute from '@/app/index';
+import { readBalance } from '@/composition/balance';
 import { signIn } from '@/composition/sign-in';
 import type { SignInResult } from '@/features/auth/application/sign-in';
 
+jest.mock('@/composition/balance', () => ({ readBalance: jest.fn() }));
 jest.mock('@/composition/sign-in', () => ({ signIn: jest.fn() }));
 
 const signInMock = jest.mocked(signIn);
+const readBalanceMock = jest.mocked(readBalance);
+const session = { token: 'fixture-token', user: { id: 7, name: 'Cliente de prueba', email: 'demo@example.com' } };
 const routes = { _layout: RootLayout, index: IndexRoute, home: HomeRoute };
 
 async function fillLogin() {
@@ -17,7 +21,10 @@ async function fillLogin() {
   await fireEvent.changeText(screen.getByLabelText('Contraseña'), 'fixture-password');
 }
 
-beforeEach(() => signInMock.mockReset());
+beforeEach(() => {
+  signInMock.mockReset();
+  readBalanceMock.mockReset().mockResolvedValue({ ok: true, data: { amount: 1500, currency: 'USD' } });
+});
 
 it('protege el inicio incluso si se abre un enlace directo', async () => {
   await renderRouter(routes, { initialUrl: '/home' });
@@ -42,7 +49,7 @@ it('valida los campos antes de intentar iniciar sesión', async () => {
 it('activa la sesión ante una respuesta válida y permite cerrarla', async () => {
   signInMock.mockResolvedValue({
     ok: true,
-    session: { token: 'fixture-token', user: { id: 7, name: 'Cliente de prueba', email: 'demo@example.com' } },
+    session,
   });
   await renderRouter(routes, { initialUrl: '/' });
   await fillLogin();
@@ -76,4 +83,37 @@ it('impide solicitudes simultáneas y permite reintentar tras un rechazo', async
   await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
   expect(await screen.findByText('El servicio no está disponible. Intentá de nuevo.')).toBeOnTheScreen();
   expect(signInMock).toHaveBeenCalledTimes(2);
+});
+
+
+it('lee el saldo autenticado, conserva la última lectura si falla un refresco y permite reintentar', async () => {
+  signInMock.mockResolvedValue({ ok: true, session });
+  readBalanceMock.mockResolvedValueOnce({ ok: true, data: { amount: 1750.25, currency: 'USD' } })
+    .mockResolvedValueOnce({ ok: false, error: 'unavailable' })
+    .mockResolvedValueOnce({ ok: true, data: { amount: 2200.50, currency: 'USD' } });
+
+  await renderRouter(routes);
+  await fillLogin();
+  await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
+  expect(await screen.findByText(/1\.750,25/)).toBeOnTheScreen();
+  expect(readBalanceMock).toHaveBeenCalledWith(session.token);
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Actualizar saldo' }));
+  expect(await screen.findByText('El servicio no está disponible. Intentá de nuevo.')).toBeOnTheScreen();
+  expect(screen.getByText(/1\.750,25/)).toBeOnTheScreen();
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Actualizar saldo' }));
+  expect(await screen.findByText(/2\.200,50/)).toBeOnTheScreen();
+});
+
+it('cierra el acceso privado si la API indica que venció la sesión', async () => {
+  signInMock.mockResolvedValue({ ok: true, session });
+  readBalanceMock.mockResolvedValue({ ok: false, error: 'unauthorized' });
+
+  await renderRouter(routes);
+  await fillLogin();
+  await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
+
+  expect(await screen.findByText('Tu sesión venció. Volvé a ingresar.')).toBeOnTheScreen();
+  expect(screen).toHavePathname('/');
 });
