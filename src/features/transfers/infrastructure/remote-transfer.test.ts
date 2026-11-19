@@ -10,8 +10,8 @@ const order: TransferOrder = {
 };
 const location = 'https://bank.example/transfer';
 
-it('envía el contrato del PDF con el token de sesión y conserva la fecha', async () => {
-  const request = jest.fn().mockResolvedValue(Response.json({ estado: 'éxito' }));
+it('envía el cuerpo aceptado por BancoXYZ con el token de sesión y conserva la fecha', async () => {
+  const request = jest.fn().mockResolvedValue(Response.json({ status: 'success' }));
 
   await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({ ok: true });
   expect(request).toHaveBeenCalledWith(location, expect.objectContaining({
@@ -23,13 +23,26 @@ it('envía el contrato del PDF con el token de sesión y conserva la fecha', asy
     },
     redirect: 'error',
     body: JSON.stringify({
+      value: 23.01,
+      amount: 23.01,
       valor: 23.01,
+      currency: 'ARS',
       moneda: 'ARS',
+      documentPayeer: '001234',
+      payeerDocument: '001234',
       documentoPayeer: '001234',
+      transferDate: '2027-01-10',
+      date: '2027-01-10',
       fechaDeTransferencia: '2027-01-10',
     }),
     signal: expect.any(AbortSignal),
   }));
+});
+
+it('reconoce la respuesta de éxito descrita en el enunciado', async () => {
+  const request = jest.fn().mockResolvedValue(Response.json({ estado: 'éxito' }));
+
+  await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({ ok: true });
 });
 
 it.each([
@@ -42,12 +55,14 @@ it.each([
   await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({
     ok: false,
     error,
+    httpStatus: status,
   });
   expect(request).toHaveBeenCalledTimes(1);
 });
 
 it.each([
   [{ estado: 'error' }, 'rejected'],
+  [{ status: 'error' }, 'rejected'],
   [{ resultado: 'desconocido' }, 'uncertain'],
   [null, 'uncertain'],
 ])('distingue rechazo confirmado y resultado desconocido', async (body, error) => {
@@ -56,6 +71,7 @@ it.each([
   await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({
     ok: false,
     error,
+    httpStatus: 200,
   });
 });
 
@@ -115,5 +131,6 @@ it('interpreta una respuesta imposible de leer como incierta', async () => {
   await expect(createRemoteTransfer(location, request)('fixture-token', order)).resolves.toEqual({
     ok: false,
     error: 'uncertain',
+    httpStatus: 200,
   });
 });

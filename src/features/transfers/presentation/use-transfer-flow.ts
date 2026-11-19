@@ -33,8 +33,10 @@ const submitNotice: Record<Exclude<TransferError, 'uncertain'>, string> = {
 
 function stepFromResult(result: TransferResult, order: TransferOrder): TransferStep {
   if (result.ok) return { stage: 'success', order, notice: '' };
-  if (result.error === 'uncertain') return { stage: 'uncertain', order, notice: '' };
-  return { stage: 'review', order, notice: submitNotice[result.error] };
+  const httpDetail = result.httpStatus === undefined ? '' : `Respuesta del servidor: HTTP ${result.httpStatus}.`;
+  if (result.error === 'uncertain') return { stage: 'uncertain', order, notice: httpDetail };
+  const notice = [submitNotice[result.error], httpDetail].filter(Boolean).join(' ');
+  return { stage: 'review', order, notice };
 }
 
 async function send(transfer: TransferOrder, submit: SubmitTransfer): Promise<TransferResult> {

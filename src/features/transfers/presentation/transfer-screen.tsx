@@ -63,6 +63,9 @@ function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, tod
         <Text accessibilityRole="header" style={styles.heading}>
           {draft.timing === 'future' ? 'Transferencia programada' : 'Transferencia confirmada'}
         </Text>
+        <Text style={styles.description}>
+          El servidor aceptó la solicitud. Consultá el historial para verificar si figura el movimiento.
+        </Text>
         <TransferSummary order={step.order} />
         <TransferButton title="Volver al inicio" onPress={onSuccess} />
       </View>
@@ -76,6 +79,7 @@ function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, tod
         <Text style={styles.description}>
           No pudimos confirmar el envío. Revisá tus movimientos antes de intentar otra transferencia.
         </Text>
+        <TransferNotice notice={step.notice} />
         <TransferSummary order={step.order} />
         {onViewHistory && <TransferButton title="Ver movimientos" onPress={onViewHistory} />}
         <TransferButton title="Volver al inicio" onPress={onBack} secondary={Boolean(onViewHistory)} />
