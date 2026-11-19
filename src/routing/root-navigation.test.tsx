@@ -206,7 +206,7 @@ it.each([
   await act(() => router.back());
   expect(screen).toHavePathname('/transfer');
   await act(async () => { transfer.resolve({ ok: true }); });
-  expect(await screen.findByRole('header', { name: 'Solicitud aceptada' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Transferencia exitosa' })).toBeOnTheScreen();
   expect(sendTransferMock).toHaveBeenCalledWith(session.token, expect.objectContaining({
     recipientDocument: '000123', amountMinor: 1250, currency: 'USD',
   }));

@@ -41,18 +41,18 @@ export function TransferScreen({ clock = systemClock, onReviewBackChange, ...pro
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <TransferContent {...props} flow={flow} today={clock()} />
         </ScrollView>
-        <TransferActions flow={flow} />
+        <TransferActions flow={flow} onSuccess={props.onSuccess} onViewHistory={props.onViewHistory} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-type ContentProps = Pick<TransferScreenProps, 'currency' | 'onBack' | 'onSuccess' | 'onViewHistory'> & {
+type ContentProps = Pick<TransferScreenProps, 'currency' | 'onBack' | 'onViewHistory'> & {
   flow: ReturnType<typeof useTransferFlow>;
   today: Date;
 };
 
-function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, today }: ContentProps) {
+function TransferContent({ currency, onBack, onViewHistory, flow, today }: ContentProps) {
   const { draft, step, update, edit } = flow;
   if (step.stage === 'draft') {
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 12);
@@ -68,14 +68,12 @@ function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, tod
     return (
       <View style={styles.stack}>
         <Text accessibilityRole="header" style={styles.heading}>
-          {draft.timing === 'future' ? 'Solicitud de programación aceptada' : 'Solicitud aceptada'}
+          {draft.timing === 'future' ? 'Transferencia programada' : 'Transferencia exitosa'}
         </Text>
         <Text style={styles.description}>
           Consultá el historial para verificar si el banco registró el movimiento.
         </Text>
         <TransferSummary order={step.order} />
-        {onViewHistory && <TransferButton title="Ver historial" onPress={onViewHistory} />}
-        <TransferButton title="Volver al inicio" onPress={onSuccess} secondary={Boolean(onViewHistory)} />
       </View>
     );
   }
@@ -105,7 +103,11 @@ function TransferContent({ currency, onBack, onSuccess, onViewHistory, flow, tod
   );
 }
 
-function TransferActions({ flow }: { flow: ReturnType<typeof useTransferFlow> }) {
+type ActionsProps = Pick<TransferScreenProps, 'onSuccess' | 'onViewHistory'> & {
+  flow: ReturnType<typeof useTransferFlow>;
+};
+
+function TransferActions({ flow, onSuccess, onViewHistory }: ActionsProps) {
   const { draft, step, edit, review, confirm } = flow;
   if (step.stage === 'draft') {
     return (
@@ -118,6 +120,15 @@ function TransferActions({ flow }: { flow: ReturnType<typeof useTransferFlow> })
             review();
           }}
         />
+      </View>
+    );
+  }
+
+  if (step.stage === 'success') {
+    return (
+      <View style={styles.footer}>
+        <TransferButton title="Volver al inicio" onPress={onSuccess} secondary={Boolean(onViewHistory)} centered />
+        {onViewHistory && <TransferButton title="Ver historial" onPress={onViewHistory} />}
       </View>
     );
   }

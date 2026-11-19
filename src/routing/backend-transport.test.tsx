@@ -61,7 +61,7 @@ it('envía el contrato real desde el formulario y vuelve a consultar el backend 
   const transferDate = localCalendarDate(new Date());
   await press('Confirmar transferencia');
 
-  expect(await screen.findByRole('header', { name: 'Solicitud aceptada' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Transferencia exitosa' })).toBeOnTheScreen();
   expect(requests).toHaveBeenCalledWith(mockEndpoints.transfer, expect.objectContaining({
     method: 'POST',
     headers: expect.objectContaining({ Authorization: 'Bearer fixture-token' }),
