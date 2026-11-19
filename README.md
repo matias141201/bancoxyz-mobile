@@ -11,7 +11,7 @@ npm ci
 cp .env.example .env.local
 ```
 
-Completá `.env.local` con los endpoints HTTPS de evaluación.
+`.env.example` ya incluye las cuatro URLs completas del entorno de evaluación. Al copiarlo a `.env.local`, la app queda configurada para conectarse.
 
 | Variable | Ruta |
 | --- | --- |
@@ -20,7 +20,7 @@ Completá `.env.local` con los endpoints HTTPS de evaluación.
 | `EXPO_PUBLIC_HISTORY_URL` | `/default/transferList` |
 | `EXPO_PUBLIC_TRANSFER_URL` | `/default/transfer` |
 
-Usá las URL completas y una cuenta de evaluación provista por el contacto de la prueba. Las variables `EXPO_PUBLIC_*` se incluyen en el bundle y deben contener únicamente configuración pública.
+Ingresá con una cuenta de evaluación provista por el contacto de la prueba. Las variables `EXPO_PUBLIC_*` se incluyen en el bundle y deben contener únicamente configuración pública.
 
 ## Ejecución
 
