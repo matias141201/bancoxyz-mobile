@@ -16,6 +16,7 @@ function Routes() {
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="home" />
         <Stack.Screen name="history" />
+        <Stack.Screen name="transfer" options={{ gestureEnabled: false }} />
       </Stack.Protected>
     </Stack>
   );

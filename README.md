@@ -1,23 +1,36 @@
 # BancoXYZ Mobile
 
-Aplicación móvil para la prueba técnica de BancoXYZ. Usa React Native, Expo SDK 58, Expo Router y TypeScript.
+Aplicación móvil para consultar el saldo y gestionar transferencias. Usa React Native, Expo SDK 58, Expo Router y TypeScript.
 
-## Requisitos
+## Instalación
 
-- Node.js 24 LTS (24.3 o posterior) y npm.
-- Expo Go compatible con SDK 58 en un teléfono, simulador iOS o emulador Android.
-
-## Instalación y ejecución
+Requiere Node.js 24 LTS (24.3 o posterior), npm y Expo Go compatible con SDK 58 en un teléfono, simulador iOS o emulador Android.
 
 ```sh
 npm ci
 cp .env.example .env.local
+```
+
+Completá `.env.local` con los endpoints HTTPS de evaluación.
+
+| Variable | Ruta |
+| --- | --- |
+| `EXPO_PUBLIC_LOGIN_URL` | `/default/login` |
+| `EXPO_PUBLIC_BALANCE_URL` | `/default/balance` |
+| `EXPO_PUBLIC_HISTORY_URL` | `/default/transferList` |
+| `EXPO_PUBLIC_TRANSFER_URL` | `/default/transfer` |
+
+Usá las URL completas y una cuenta de evaluación provista por el contacto de la prueba. Las variables `EXPO_PUBLIC_*` se incluyen en el bundle y deben contener únicamente configuración pública.
+
+## Ejecución
+
+```sh
 npm start
 ```
 
-Configurá `EXPO_PUBLIC_LOGIN_URL`, `EXPO_PUBLIC_BALANCE_URL` y `EXPO_PUBLIC_HISTORY_URL` con los endpoints HTTPS de evaluación. Para saldo se usa la ruta `/default/balance`. Usá una cuenta de evaluación provista por el contacto de la prueba. Después iniciá Expo y escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`.
+Escaneá el QR en Expo Go o elegí `i` para iOS y `a` para Android cuando el entorno esté preparado. También podés usar `npm run ios`, `npm run android` o `npm run web`. La vista web depende de los permisos CORS del entorno de evaluación.
 
-## Pruebas y calidad
+## Pruebas
 
 ```sh
 npm run lint
@@ -26,14 +39,17 @@ npm test -- --runInBand
 npm run test:coverage
 ```
 
-Jest incluye pruebas de componentes y navegación. El umbral global de esta base es 80% en ramas, líneas, funciones y sentencias.
+Jest cubre reglas de dinero y fecha, contratos HTTP, estados de pantalla y el flujo de login a historial con respuestas simuladas. La cobertura global mínima configurada es 80% para líneas, ramas, funciones y sentencias.
 
 ## Estructura
 
-- `src/app` contiene las rutas y la configuración de navegación.
-- `src/features` agrupa el código por funcionalidad.
-- `src/theme` concentra los tokens visuales.
+- `src/app` compone pantallas y protege las rutas privadas.
+- `src/features` separa autenticación, saldo, historial y transferencias.
+- `src/composition` conecta los adaptadores con la configuración de cada entorno.
+- `src/shared` contiene las reglas y componentes transversales. `src/theme` concentra los tokens visuales.
 
-## Estado
+## Verificación de la API
 
-El login abre una ruta privada y mantiene la sesión en memoria hasta cerrar sesión o reiniciar la app. El inicio consulta el saldo y permite actualizarlo. El historial de movimientos permite combinar filtros de destinatario, importe y fecha. El envío de transferencias se desarrolla en su rama de funcionalidad.
+Login, saldo e historial se verificaron contra la API de evaluación. La sesión se mantiene en memoria y una respuesta HTTP 401 en el área privada vuelve a pedir el ingreso.
+
+El adaptador de transferencia envía `valor`, `moneda`, `documentoPayeer` y `fechaDeTransferencia` y lee `estado`, tal como los presenta el enunciado. Su envío inmediato y programado se verificaron con respuestas simuladas. El contrato del POST y la ejecución de fechas programadas por el servidor siguen pendientes de verificación en el entorno de evaluación. Si la respuesta de un envío es incierta, la aplicación permite consultar el historial antes de intentar otra transferencia.

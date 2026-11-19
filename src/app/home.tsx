@@ -19,6 +19,7 @@ export default function HomeRoute() {
       onReload={reload}
       onSignOut={signOut}
       onHistory={() => router.push('/history')}
+      onTransfer={() => router.push('/transfer')}
     />
   );
 }

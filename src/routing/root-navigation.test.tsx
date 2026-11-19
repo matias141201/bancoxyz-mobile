@@ -1,24 +1,29 @@
 import { act, fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 
 import RootLayout from '@/app/_layout';
 import HomeRoute from '@/app/home';
 import HistoryRoute from '@/app/history';
 import IndexRoute from '@/app/index';
+import TransferRoute from '@/app/transfer';
 import { readBalance } from '@/composition/balance';
 import { readHistory } from '@/composition/history';
 import { signIn } from '@/composition/sign-in';
+import { sendTransfer } from '@/composition/transfer';
 import type { SignInResult } from '@/features/auth/application/sign-in';
 
 jest.mock('@/composition/balance', () => ({ readBalance: jest.fn() }));
 jest.mock('@/composition/history', () => ({ readHistory: jest.fn() }));
 jest.mock('@/composition/sign-in', () => ({ signIn: jest.fn() }));
+jest.mock('@/composition/transfer', () => ({ sendTransfer: jest.fn() }));
 
 const signInMock = jest.mocked(signIn);
+const sendTransferMock = jest.mocked(sendTransfer);
 const readHistoryMock = jest.mocked(readHistory);
 const readBalanceMock = jest.mocked(readBalance);
 const session = { token: 'fixture-token', user: { id: 7, name: 'Cliente de prueba', email: 'demo@example.com' } };
-const routes = { _layout: RootLayout, index: IndexRoute, home: HomeRoute, history: HistoryRoute };
+const routes = { _layout: RootLayout, index: IndexRoute, home: HomeRoute, history: HistoryRoute, transfer: TransferRoute };
 
 async function fillLogin() {
   await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'demo@example.com');
@@ -27,6 +32,7 @@ async function fillLogin() {
 
 beforeEach(() => {
   signInMock.mockReset();
+  sendTransferMock.mockReset();
   readHistoryMock.mockReset().mockResolvedValue({ ok: true, data: [] });
   readBalanceMock.mockReset().mockResolvedValue({ ok: true, data: { amount: 1500, currency: 'USD' } });
 });
@@ -149,4 +155,43 @@ it('protege un enlace directo al historial sin sesión', async () => {
 
   expect(await screen.findByRole('header', { name: 'Ingresá a tu cuenta' })).toBeOnTheScreen();
   expect(readHistoryMock).not.toHaveBeenCalled();
+});
+
+
+it('recorre login, saldo, envío confirmado e historial con una API simulada', async () => {
+  signInMock.mockResolvedValue({ ok: true, session });
+  const initialBalance = { ok: true, data: { amount: 1500, currency: 'USD' } } as const;
+  readBalanceMock.mockResolvedValueOnce(initialBalance).mockResolvedValueOnce(initialBalance)
+    .mockResolvedValue({ ok: true, data: { amount: 1487.5, currency: 'USD' } });
+  const transfer = Promise.withResolvers<Awaited<ReturnType<typeof sendTransfer>>>();
+  sendTransferMock.mockReturnValue(transfer.promise);
+  readHistoryMock.mockResolvedValue({
+    ok: true,
+    data: [{ key: '2', date: '2026-08-22', amountMinor: 1250, currency: 'USD', recipientName: 'Sofía Demo' }],
+  });
+
+  await renderRouter(routes);
+  await fillLogin();
+  await fireEvent.press(screen.getByRole('button', { name: 'Ingresar' }));
+  expect(await screen.findByText(/1\.500,00/)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Nueva transferencia' }));
+  expect(await screen.findByRole('header', { name: 'Nueva transferencia' })).toBeOnTheScreen();
+
+  await fireEvent.changeText(screen.getByLabelText('Documento del destinatario'), '000123');
+  await fireEvent.changeText(screen.getByLabelText('Monto en USD'), '12,50');
+  await fireEvent.press(screen.getByRole('button', { name: 'Revisar transferencia' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Confirmar transferencia' }));
+
+  await act(() => router.back());
+  expect(screen).toHavePathname('/transfer');
+  await act(async () => { transfer.resolve({ ok: true }); });
+  expect(await screen.findByRole('header', { name: 'Transferencia confirmada' })).toBeOnTheScreen();
+  expect(sendTransferMock).toHaveBeenCalledWith(session.token, expect.objectContaining({
+    recipientDocument: '000123', amountMinor: 1250, currency: 'USD',
+  }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Volver al inicio' }));
+  expect(await screen.findByText(/1\.487,50/)).toBeOnTheScreen();
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Ver historial' }));
+  expect(await screen.findByText('Sofía Demo')).toBeOnTheScreen();
 });

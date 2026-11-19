@@ -13,9 +13,10 @@ type Props = Readonly<{
   onReload: () => void;
   onSignOut: () => void;
   onHistory: () => void;
+  onTransfer: () => void;
 }>;
 
-export function AccountScreen({ name, balance, onReload, onSignOut, onHistory }: Props) {
+export function AccountScreen({ name, balance, onReload, onSignOut, onHistory, onTransfer }: Props) {
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -27,6 +28,15 @@ export function AccountScreen({ name, balance, onReload, onSignOut, onHistory }:
         </View>
         <Text accessibilityRole="header" style={styles.heading}>Hola, {name}</Text>
         <BalanceCard state={balance} onReload={onReload} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Nueva transferencia"
+          onPress={onTransfer}
+          style={[styles.quickAction, styles.primaryAction]}
+        >
+          <Text style={styles.primaryLabel}>Nueva transferencia</Text>
+          <Text style={[styles.actionArrow, styles.primaryLabel]} importantForAccessibility="no">›</Text>
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Ver historial" onPress={onHistory} style={styles.quickAction}>
           <Text style={styles.buttonLabel}>Ver historial</Text>
           <Text style={styles.actionArrow} importantForAccessibility="no">›</Text>
@@ -49,6 +59,8 @@ const styles = StyleSheet.create({
     gap: spacing.md, paddingHorizontal: spacing.md, borderRadius: spacing.sm,
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
   },
+  primaryAction: { backgroundColor: colors.primary, borderColor: colors.primary },
+  primaryLabel: { color: colors.onPrimary, fontWeight: '700', fontSize: 16 },
   actionArrow: { color: colors.primary, fontSize: 24 },
   buttonLabel: { color: colors.primary, fontSize: 15, fontWeight: '700' },
 });
